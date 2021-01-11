@@ -16,14 +16,6 @@
 
 package org.springframework.core.io.support;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.Reader;
-import java.net.URL;
-import java.net.URLConnection;
-import java.util.Enumeration;
-import java.util.Properties;
-
 import org.springframework.core.SpringProperties;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
@@ -31,6 +23,14 @@ import org.springframework.util.Assert;
 import org.springframework.util.ClassUtils;
 import org.springframework.util.PropertiesPersister;
 import org.springframework.util.ResourceUtils;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.Reader;
+import java.net.URL;
+import java.net.URLConnection;
+import java.util.Enumeration;
+import java.util.Properties;
 
 /**
  * Convenient utility methods for loading of {@code java.util.Properties},
@@ -185,6 +185,8 @@ public abstract class PropertiesLoaderUtils {
 		if (classLoaderToUse == null) {
 			classLoaderToUse = ClassUtils.getDefaultClassLoader();
 		}
+		// 这里会在当前的ClassLoader中寻找所有的同名资源 比如 resourceName为META-INF/spring.handlers 时
+		// 就表明获取当前ClassLoader中的所有 META-INF/spring.handlers 资源。
 		Enumeration<URL> urls = (classLoaderToUse != null ? classLoaderToUse.getResources(resourceName) :
 				ClassLoader.getSystemResources(resourceName));
 		Properties props = new Properties();

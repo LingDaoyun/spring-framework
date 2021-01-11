@@ -16,14 +16,14 @@
 
 package org.springframework.context.support;
 
-import java.io.IOException;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.config.ConfigurableListableBeanFactory;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextException;
 import org.springframework.lang.Nullable;
+
+import java.io.IOException;
 
 /**
  * Base class for {@link org.springframework.context.ApplicationContext}
@@ -113,21 +113,37 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 
 
 	/**
+	 * 这个实现执行当前BeanFactory的刷新，关闭以前的BeanFactory，并为了Context的生命周期的下一阶段，
+	 * 初始化一个新的BeanFactory
 	 * This implementation performs an actual refresh of this context's underlying
 	 * bean factory, shutting down the previous bean factory (if any) and
 	 * initializing a fresh bean factory for the next phase of the context's lifecycle.
+	 * 英语：
+	 *   implementation ： 实现，履行，安装启用
+	 *   actual ： 真实的，实际的，现行的，目前的
+	 *   underlying ： 潜在的，根本的，在下面的，为...的基础
+	 *   phase ： 阶段，分阶段进行。。.
 	 */
 	@Override
 	protected final void refreshBeanFactory() throws BeansException {
+		// 判断是否已有BeanFactory，如果有的话
+		// 1、销毁
+		// 2、清理
 		if (hasBeanFactory()) {
 			destroyBeans();
 			closeBeanFactory();
 		}
 		try {
+			// 创建一个beanfactory
 			DefaultListableBeanFactory beanFactory = createBeanFactory();
+			// 设置一个唯一ID
 			beanFactory.setSerializationId(getId());
+			// 自定义BeanFactory，同样可以被子类方法实现覆盖
 			customizeBeanFactory(beanFactory);
+			// 加载 bean definition (Bean 定义对象)
+			// 这里采用了xml定义bean，所以这里的实际对象是 AbstractXmlApplicationContext
 			loadBeanDefinitions(beanFactory);
+			// 赋值给域变量
 			this.beanFactory = beanFactory;
 		}
 		catch (IOException ex) {
@@ -163,6 +179,8 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 
 	@Override
 	public final ConfigurableListableBeanFactory getBeanFactory() {
+		// 如果当前BeanFactory已经刷新成功，则返回
+		// 已经加载完成BeanDefinition
 		DefaultListableBeanFactory beanFactory = this.beanFactory;
 		if (beanFactory == null) {
 			throw new IllegalStateException("BeanFactory not initialized or already closed - " +
@@ -194,6 +212,9 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 * @see org.springframework.beans.factory.support.DefaultListableBeanFactory#setAllowRawInjectionDespiteWrapping
 	 */
 	protected DefaultListableBeanFactory createBeanFactory() {
+		// 如果有parent BeanFactory，将Parent复制给当前Factory中的一个parentBeanFactory变量，默认没有
+		// 但在SpringMVC中，初始化SpringMVC的BeanFactory时，webBeanFactory有一个parent（未求证）
+		// @since 2020年11月26日20:49:58 V1
 		return new DefaultListableBeanFactory(getInternalParentBeanFactory());
 	}
 
@@ -213,9 +234,13 @@ public abstract class AbstractRefreshableApplicationContext extends AbstractAppl
 	 */
 	protected void customizeBeanFactory(DefaultListableBeanFactory beanFactory) {
 		if (this.allowBeanDefinitionOverriding != null) {
+			// 是否允许同名Bean自动覆盖，不允许则抛出
+			// 异常，允许则后者覆盖前者，但是这个flag只在 不同文件有同名bean的情况下起作用，
+			// 如果一个定义文件中有相同的bean Definition 则直接抛出异常
 			beanFactory.setAllowBeanDefinitionOverriding(this.allowBeanDefinitionOverriding);
 		}
 		if (this.allowCircularReferences != null) {
+			// 是否允许自动解决循环依赖，不允许则抛出异常
 			beanFactory.setAllowCircularReferences(this.allowCircularReferences);
 		}
 	}

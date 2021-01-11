@@ -16,11 +16,11 @@
 
 package org.springframework.aop.aspectj;
 
-import java.util.List;
-
 import org.springframework.aop.Advisor;
 import org.springframework.aop.PointcutAdvisor;
 import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
+
+import java.util.List;
 
 /**
  * Utility methods for working with AspectJ proxies.
@@ -33,6 +33,10 @@ import org.springframework.aop.interceptor.ExposeInvocationInterceptor;
 public abstract class AspectJProxyUtils {
 
 	/**
+	 * 在容器的advisors中，如果proxy chain需要，则添加一个特别的advisors ExposeInvocationInterceptor
+	 * 至列表的开头部位。
+	 * 这将暴露当前Spring AOP 调用并且使当前的AspectJ 连接点进入可用状态。如果当前的advisor chain中没有 AspectJ
+	 * advisors ，则当前调用没有影响。
 	 * Add special advisors if necessary to work with a proxy chain that contains AspectJ advisors:
 	 * concretely, {@link ExposeInvocationInterceptor} at the beginning of the list.
 	 * <p>This will expose the current Spring AOP invocation (necessary for some AspectJ pointcut

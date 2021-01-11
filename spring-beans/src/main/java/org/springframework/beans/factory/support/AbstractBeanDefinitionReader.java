@@ -16,23 +16,23 @@
 
 package org.springframework.beans.factory.support;
 
-import java.io.IOException;
-import java.util.Collections;
-import java.util.Set;
-
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.beans.factory.BeanDefinitionStoreException;
 import org.springframework.core.env.Environment;
 import org.springframework.core.env.EnvironmentCapable;
 import org.springframework.core.env.StandardEnvironment;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.core.io.support.PathMatchingResourcePatternResolver;
 import org.springframework.core.io.support.ResourcePatternResolver;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
+
+import java.io.IOException;
+import java.util.Collections;
+import java.util.Set;
 
 /**
  * Abstract base class for bean definition readers which implement
@@ -65,6 +65,9 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 
 
 	/**
+	 * 通过给定的一个BeanFactory创建一个BeanDefinitionReader
+	 * 如果传入的BanFactory 同时实现了 BeanDefinitionRegistry 和 ResourceLoader 两个接口，
+	 * 那么它同样会被当做默认的ResourceLoader，
 	 * Create a new AbstractBeanDefinitionReader for the given bean factory.
 	 * <p>If the passed-in bean factory does not only implement the BeanDefinitionRegistry
 	 * interface but also the ResourceLoader interface, it will be used as default
@@ -75,11 +78,18 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 	 * <p>If the passed-in bean factory also implements {@link EnvironmentCapable} its
 	 * environment will be used by this reader.  Otherwise, the reader will initialize and
 	 * use a {@link StandardEnvironment}. All ApplicationContext implementations are
-	 * EnvironmentCapable, while normal BeanFactory implementations are not.
+	 * EnvironmentCapable, while（而） normal BeanFactory implementations are not.
 	 * @param registry the BeanFactory to load bean definitions into,
 	 * in the form of a BeanDefinitionRegistry
 	 * @see #setResourceLoader
 	 * @see #setEnvironment
+	 * 英文
+	 *   used as ： 用作，被用作
+	 *   as well ： 也，同样的
+	 *   will usually be ： 通常情况下是
+	 *   plain ： 平的，质朴的，朴素的
+	 *   otherwise ：否则，另外，在其它方面
+	 *   form ： 形式，形状，表格  in the form of 以...的形式
 	 */
 	protected AbstractBeanDefinitionReader(BeanDefinitionRegistry registry) {
 		Assert.notNull(registry, "BeanDefinitionRegistry must not be null");
@@ -211,16 +221,25 @@ public abstract class AbstractBeanDefinitionReader implements BeanDefinitionRead
 	 * @see #loadBeanDefinitions(org.springframework.core.io.Resource[])
 	 */
 	public int loadBeanDefinitions(String location, @Nullable Set<Resource> actualResources) throws BeanDefinitionStoreException {
+		// 得到当前的ResourceLoader，如果BeanFactory实现了ResourceLoader，则是BeanFactory对象
+		// @since 2020年11月26日21:52:55
 		ResourceLoader resourceLoader = getResourceLoader();
 		if (resourceLoader == null) {
 			throw new BeanDefinitionStoreException(
 					"Cannot load bean definitions from location [" + location + "]: no ResourceLoader available");
 		}
-
+		// 如果当前对象是ResourcePatternResolver的子类实现，则进行一下逻辑，
+		// ResourcePatternResolver 中定义了 classpath前缀，用以替换填充对应路径
 		if (resourceLoader instanceof ResourcePatternResolver) {
 			// Resource pattern matching available.
 			try {
+				/**
+				 * 这个Resources对象在xml模式下得到的是一个ClassPathResource，而getInputStream同样由
+				 * @see ClassPathResource#getInputStream()
+				 * 该类实现
+				 */
 				Resource[] resources = ((ResourcePatternResolver) resourceLoader).getResources(location);
+				// 加载BeanDefinition
 				int count = loadBeanDefinitions(resources);
 				if (actualResources != null) {
 					Collections.addAll(actualResources, resources);

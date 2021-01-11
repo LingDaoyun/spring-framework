@@ -16,8 +16,6 @@
 
 package org.springframework.context.support;
 
-import java.io.IOException;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.support.DefaultListableBeanFactory;
 import org.springframework.beans.factory.xml.ResourceEntityResolver;
@@ -25,6 +23,8 @@ import org.springframework.beans.factory.xml.XmlBeanDefinitionReader;
 import org.springframework.context.ApplicationContext;
 import org.springframework.core.io.Resource;
 import org.springframework.lang.Nullable;
+
+import java.io.IOException;
 
 /**
  * Convenient base class for {@link org.springframework.context.ApplicationContext}
@@ -80,17 +80,25 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 	@Override
 	protected void loadBeanDefinitions(DefaultListableBeanFactory beanFactory) throws BeansException, IOException {
 		// Create a new XmlBeanDefinitionReader for the given BeanFactory.
+		// 定义一个Bean Reader 并将BeanFactory传入
 		XmlBeanDefinitionReader beanDefinitionReader = new XmlBeanDefinitionReader(beanFactory);
 
 		// Configure the bean definition reader with this context's
 		// resource loading environment.
+		// 设置环境，如果BeanFactory实现了EnvironmentCapable接口，这个在reader初始化时就已经赋值了。
+		// 这里就变成了重新赋值，如果BeanFactory没有实现上述接口，则这里很有必要
 		beanDefinitionReader.setEnvironment(this.getEnvironment());
+		// 当前对象实现了ResourceLoader接口，这里也赋值给Reader。用以加载资源
 		beanDefinitionReader.setResourceLoader(this);
+		// 设置实体解析器，生成一个ResourceEntityResolver对象，而RER对象中设置了DTD解析器和Schema解析器
+		// 用于解析校验xml文件的格式
 		beanDefinitionReader.setEntityResolver(new ResourceEntityResolver(this));
 
 		// Allow a subclass to provide custom initialization of the reader,
 		// then proceed with actually loading the bean definitions.
+		// 初始化BeanDefinitionReader，设置是否根据DTD和Schema进行校验，默认为true
 		initBeanDefinitionReader(beanDefinitionReader);
+		// 加载BeanDefinition
 		loadBeanDefinitions(beanDefinitionReader);
 	}
 
@@ -119,12 +127,15 @@ public abstract class AbstractXmlApplicationContext extends AbstractRefreshableC
 	 * @see #getResourcePatternResolver
 	 */
 	protected void loadBeanDefinitions(XmlBeanDefinitionReader reader) throws BeansException, IOException {
+		// 得到配置的Resource，默认为null
 		Resource[] configResources = getConfigResources();
 		if (configResources != null) {
 			reader.loadBeanDefinitions(configResources);
 		}
+		// 这里的configLocations就是由ClassPathXmlApplicationContext对象的构造方法中setConfigLocations设置的变量
 		String[] configLocations = getConfigLocations();
 		if (configLocations != null) {
+			// 由reader对象加载BeanDefinition
 			reader.loadBeanDefinitions(configLocations);
 		}
 	}

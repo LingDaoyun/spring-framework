@@ -27,6 +27,8 @@ buildSrc/build
 /src/asciidoc/build
 target/
 
+spring-lsh-test/*
+
 # Eclipse artifacts, including WTP generated manifests
 .classpath
 .project

@@ -16,26 +16,15 @@
 
 package org.springframework.beans.factory.support;
 
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
-import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
-import java.util.Map;
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-
-import org.springframework.beans.factory.BeanCreationException;
-import org.springframework.beans.factory.BeanCreationNotAllowedException;
-import org.springframework.beans.factory.BeanCurrentlyInCreationException;
-import org.springframework.beans.factory.DisposableBean;
-import org.springframework.beans.factory.ObjectFactory;
+import org.springframework.beans.factory.*;
 import org.springframework.beans.factory.config.SingletonBeanRegistry;
 import org.springframework.core.SimpleAliasRegistry;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 import org.springframework.util.StringUtils;
+
+import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Generic registry for shared bean instances, implementing the
@@ -74,6 +63,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 	private static final int SUPPRESSED_EXCEPTIONS_LIMIT = 100;
 
 
+	/** Spring 中著名的三级缓存 **/
 	/** Cache of singleton objects: bean name to bean instance. */
 	private final Map<String, Object> singletonObjects = new ConcurrentHashMap<>(256);
 
@@ -189,10 +179,19 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					if (singletonObject == null) {
 						singletonObject = this.earlySingletonObjects.get(beanName);
 						if (singletonObject == null) {
+							// 当循环到 object A 依赖的 object B 时，这里才会进入，将第一次实例化 A 对象从
+							// 放入的lambda表达式取出（如果设置了动态代理，这里返回一个代理对象），
+							// 得到 dynamic-proxy 对象（未初始化）,并放入earlySingletonObject 中
 							ObjectFactory<?> singletonFactory = this.singletonFactories.get(beanName);
 							if (singletonFactory != null) {
+								/**
+								 * 该方法调用的其实是
+								 * @see org.springframework.beans.factory.support.AbstractAutowireCapableBeanFactory#getEarlyBeanReference
+								 */
 								singletonObject = singletonFactory.getObject();
+								// 代理对象创建完毕，放入earlySingletonObjects缓存中，按照命名顺序，这是第三级缓存
 								this.earlySingletonObjects.put(beanName, singletonObject);
+								// 将lambda缓存从第二级缓存中移除
 								this.singletonFactories.remove(beanName);
 							}
 						}
@@ -231,6 +230,18 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					this.suppressedExceptions = new LinkedHashSet<>();
 				}
 				try {
+					/**
+					 * 这里调用的是传过来的lambda风格的实现
+					 * @see AbstractBeanFactory#doGetBean(String, Class, Object[], boolean)
+					 *
+					 * sharedInstance = getSingleton(beanName, () -> {
+					 * 						try {
+					 * 							return createBean(beanName, mbd, args);
+					 *                       }catch (BeansException ex) {
+					 * 							destroySingleton(beanName);
+					 * 							throw ex;
+					 *                        }});
+					 */
 					singletonObject = singletonFactory.getObject();
 					newSingleton = true;
 				}
@@ -257,6 +268,7 @@ public class DefaultSingletonBeanRegistry extends SimpleAliasRegistry implements
 					afterSingletonCreation(beanName);
 				}
 				if (newSingleton) {
+					// 最终创建完成之后，将其放入三级缓存中
 					addSingleton(beanName, singletonObject);
 				}
 			}
