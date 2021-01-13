@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	   xmlns:aop="http://www.springframework.org/schema/aop"
+	   xmlns:jee="http://www.springframework.org/schema/jee"
+	   xmlns:tx="http://www.springframework.org/schema/tx"
+	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	   xmlns:context="http://www.springframework.org/schema/context"
+	   xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+       http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd
+	   http://www.springframework.org/schema/jee
+       https://www.springframework.org/schema/jee/spring-jee.xsd
+       http://www.springframework.org/schema/tx
+       https://www.springframework.org/schema/tx/spring-tx.xsd
+       http://www.springframework.org/schema/context
+       https://www.springframework.org/schema/context/spring-context.xsd">
+
+	<!-- 启用注解支持 -->
+	<context:component-scan base-package="org.lsh.test"/>
+
+	<!-- 启用切面 -->
+	<aop:aspectj-autoproxy proxy-target-class="true"/>
+
+	<context:property-placeholder ignore-unresolvable="true" location="common.properties"/>
+
+	<!-- 实例化DataSource Bean -->
+		<bean id="dataSource" class="org.springframework.jdbc.datasource.DriverManagerDataSource">
+			<property name="driverClassName" value="${jdbc.driverClassName}" />
+			<property name="url" value="${jdbc.url}" />
+			<property name="username" value="${jdbc.username}" />
+			<property name="password" value="${jdbc.password}" />
+		</bean>
+	<!-- 实例化Spring JdbcTemplate 并注入dataSource -->
+		<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">
+			<property name="dataSource" ref="dataSource"></property>
+		</bean>
+	<!-- 实例化事务管理器，并注入dataSource -->
+		<bean id="txManager" class="org.springframework.jdbc.datasource.DataSourceTransactionManager">
+			<property name="dataSource" ref="dataSource"/>
+		</bean>
+	<!-- 实例化自定义切面 -->
+	<bean id="MyAspect" class="org.lsh.test.aspect.MyAspect"/>
+
+		<tx:advice id="txAdvice" transaction-manager="txManager">
+			<!-- the transactional semantics... -->
+			<tx:attributes>
+				<!-- all methods starting with 'get' are read-only -->
+				<tx:method name="get*" read-only="true"/>
+				<!-- other methods use the default transaction settings (see below) -->
+				<tx:method name="*"/>
+			</tx:attributes>
+		</tx:advice>
+	<aop:config proxy-target-class="true">
+				<aop:pointcut id="fooServiceOperation" expression="execution(* org.lsh.test.service.*.*(..))"/>
+				<aop:advisor advice-ref="txAdvice" pointcut-ref="fooServiceOperation"/>
+<!--		<aop:aspect id="MyAspect" ref="MyAspect">-->
+<!--			<aop:pointcut id="MyPointCut" expression="execution(* org.lsh.test.bean.*.*(..))" />-->
+<!--			<aop:after-returning method="AfterAdvice" pointcut-ref="MyPointCut"></aop:after-returning>-->
+<!--			<aop:before method="BeforeAdvice1" pointcut-ref="MyPointCut"></aop:before>-->
+<!--			<aop:before method="BeforeAdvice2" pointcut-ref="MyPointCut"></aop:before>-->
+<!--		</aop:aspect>-->
+	</aop:config>
+
+<!--	<bean id="student" class="org.lsh.test.bean.xml.Student">-->
+<!--		<property name="teacher" ref="teacher"/>-->
+<!--		<property name="name" value="lsihao"/>-->
+<!--	</bean>-->
+
+<!--	<bean id="teacher" class="org.lsh.test.bean.xml.Teacher">-->
+<!--		<property name="student" ref="student"/>-->
+<!--	</bean>-->
+
+		<bean id="userService" class="org.lsh.test.service.impl.UserServiceImpl"/>
+
+</beans>
